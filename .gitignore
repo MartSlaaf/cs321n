@@ -103,3 +103,7 @@ ENV/
 # datasets folders but not get scripts:
 */datasets/*
 !*/datasets/*.sh
+
+# pycharm
+
+*/.idea/

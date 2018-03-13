@@ -32,7 +32,9 @@ def softmax_loss_naive(W, X, y, reg):
         scores = X[i].dot(W)
         correct_class_score = scores[y[i]]
         loss += -correct_class_score + np.log(np.sum(np.exp(scores)))
-
+        dW[:, y[i]] -= X[i]
+        for j in xrange(num_classes):
+            dW[:, j] += np.exp(scores[j]) * X[i] / np.sum(np.exp(scores))
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
@@ -40,6 +42,7 @@ def softmax_loss_naive(W, X, y, reg):
 
     # Add regularization to the loss.
     loss += reg * np.sum(W)
+    dW += 2 * reg * W
 
     return loss, dW
 
