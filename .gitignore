@@ -99,3 +99,7 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+# datasets folders but not get scripts:
+*/datasets/*
+!*/datasets/*.sh
