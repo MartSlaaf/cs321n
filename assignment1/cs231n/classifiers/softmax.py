@@ -41,7 +41,7 @@ def softmax_loss_naive(W, X, y, reg):
     dW /= num_train
 
     # Add regularization to the loss.
-    loss += reg * np.sum(W)
+    loss += reg * np.sum(W * W)
     dW += 2 * reg * W
 
     return loss, dW
