@@ -59,28 +59,10 @@ class LinearClassifier(object):
     return loss_history
 
   def predict(self, X):
-    """
-    Use the trained weights of this linear classifier to predict labels for
-    data points.
-
-    Inputs:
-    - X: A numpy array of shape (N, D) containing training data; there are N
-      training samples each of dimension D.
-
-    Returns:
-    - y_pred: Predicted labels for the data in X. y_pred is a 1-dimensional
-      array of length N, and each element is an integer giving the predicted
-      class.
-    """
     y_pred = np.zeros(X.shape[0])
-    ###########################################################################
-    # TODO:                                                                   #
-    # Implement this method. Store the predicted labels in y_pred.            #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                           END OF YOUR CODE                              #
-    ###########################################################################
+    scores = X.dot(self.W)
+    y_pred = np.argmax(scores, 1)
+
     return y_pred
   
   def loss(self, X_batch, y_batch, reg):
@@ -104,12 +86,7 @@ class LinearClassifier(object):
 class LinearSVM(LinearClassifier):
   """ A subclass that uses the Multiclass SVM loss function """
 
-  def predict(self, X):
-    y_pred = np.zeros(X.shape[0])
-    scores = X.dot(self.W)
-    y_pred = np.argmax(scores, 1)
 
-    return y_pred
 
   def loss(self, X_batch, y_batch, reg):
     return svm_loss_vectorized(self.W, X_batch, y_batch, reg)
