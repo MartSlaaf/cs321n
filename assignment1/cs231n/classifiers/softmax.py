@@ -68,14 +68,9 @@ def softmax_loss_vectorized(W, X, y, reg):
     loss = loss.sum()
 
 
-    # matrix_of_indices = np.zeros((num_train, X.shape[1], num_classes))
-    # matrix_of_indices[np.arange(num_train), :, y] = 1
     one_hot = np.zeros((y.shape[0], y.max() + 1))
     one_hot[np.arange(y.shape[0]), y] = 1
-    # dW = (((exp_sc / scpum[:, None])[:, None, :] - matrix_of_indices) * X[:, :, None]).sum(0)
-    # dW = ((exp_sc / scpum[:, None])[:, None, :] * X[:, :, None]).sum(0)
     dW = X.T.dot(exp_sc / scpum[:, None] - one_hot)
-    # dW -= X.T.dot(one_hot)
     # Right now the loss is a sum over all training examples, but we want it
     # to be an average instead so we divide by num_train.
     loss /= num_train
