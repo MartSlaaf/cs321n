@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
 
+def my_expit(x):
+  return 1 / (1 + np.exp(-x))
+
 class TwoLayerNet(object):
   """
   A two-layer fully-connected neural network. The net has an input dimension of
@@ -69,46 +72,41 @@ class TwoLayerNet(object):
     W2, b2 = self.params['W2'], self.params['b2']
     N, D = X.shape
 
-    # Compute the forward pass
-    scores = None
-    #############################################################################
-    # TODO: Perform the forward pass, computing the class scores for the input. #
-    # Store the result in the scores variable, which should be an array of      #
-    # shape (N, C).                                                             #
-    #############################################################################
-    pass
-    #############################################################################
-    #                              END OF YOUR CODE                             #
-    #############################################################################
-    
+    h = np.clip(X @ W1 + b1, 0, np.inf)
+    scores = h @ W2 + b2
+
     # If the targets are not given then jump out, we're done
     if y is None:
       return scores
 
     # Compute the loss
-    loss = None
-    #############################################################################
-    # TODO: Finish the forward pass, and compute the loss. This should include  #
-    # both the data loss and L2 regularization for W1 and W2. Store the result  #
-    # in the variable loss, which should be a scalar. Use the Softmax           #
-    # classifier loss.                                                          #
-    #############################################################################
-    pass
-    #############################################################################
-    #                              END OF YOUR CODE                             #
-    #############################################################################
+    correct_class_score = scores[np.arange(N), y]
+    exp_sc = np.exp(scores)
+    scpum = exp_sc.sum(1)
+
+    loss = -correct_class_score + np.log(scpum)
+    loss = loss.mean()
+    loss += reg * np.sum(W1 * W1)
+    loss += reg * np.sum(W2 * W2)
 
     # Backward pass: compute gradients
     grads = {}
-    #############################################################################
-    # TODO: Compute the backward pass, computing the derivatives of the weights #
-    # and biases. Store the results in the grads dictionary. For example,       #
-    # grads['W1'] should store the gradient on W1, and be a matrix of same size #
-    #############################################################################
-    pass
-    #############################################################################
-    #                              END OF YOUR CODE                             #
-    #############################################################################
+
+    dq = np.ones_like(scores)*exp_sc/scpum[:, None]
+    dq[np.arange(N), y] -= 1
+
+    grads['b2'] = dq.mean(0)
+
+    grads['W2'] = h.T @ dq / N
+    grads['W2'] += 2 * reg * W2
+
+    dh = dq @ W2.T
+    dh[np.where(X @ W1 + b1 < 0)] = 0
+
+    grads['b1'] = dh.mean(0)
+
+    grads['W1'] = X.T @ dh / N
+    grads['W1'] += 2 * reg * W1
 
     return loss, grads
 
