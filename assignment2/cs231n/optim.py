@@ -56,19 +56,14 @@ def sgd_momentum(w, dw, config=None):
       moving average of the gradients.
     """
     if config is None: config = {}
-    config.setdefault('learning_rate', 1e-2)
-    config.setdefault('momentum', 0.9)
-    v = config.get('velocity', np.zeros_like(w))
 
-    next_w = None
-    ###########################################################################
-    # TODO: Implement the momentum update formula. Store the updated value in #
-    # the next_w variable. You should also use and update the velocity v.     #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    v = config.get('velocity', np.zeros_like(w))
+    beta = config.get('momentum', 0.9)
+    l_r = config.get('learning_rate', 1e-2)
+
+    v = beta * v - l_r * dw
+
+    next_w = w + v
     config['velocity'] = v
 
     return next_w, config
@@ -88,21 +83,16 @@ def rmsprop(x, dx, config=None):
     - cache: Moving average of second moments of gradients.
     """
     if config is None: config = {}
-    config.setdefault('learning_rate', 1e-2)
-    config.setdefault('decay_rate', 0.99)
-    config.setdefault('epsilon', 1e-8)
-    config.setdefault('cache', np.zeros_like(x))
+    l_r = config.get('learning_rate', 1e-2)
+    beta = config.get('decay_rate', 0.99)
+    eps = config.get('epsilon', 1e-8)
+    cache = config.get('cache', np.zeros_like(x))
 
-    next_x = None
-    ###########################################################################
-    # TODO: Implement the RMSprop update formula, storing the next value of x #
-    # in the next_x variable. Don't forget to update cache value stored in    #
-    # config['cache'].                                                        #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    cache = beta * cache + (1-beta) * dx**2
+
+    next_x = x - l_r * dx / (np.sqrt(cache) + eps)
+
+    config['cache'] = cache
 
     return next_x, config
 
@@ -122,23 +112,21 @@ def adam(x, dx, config=None):
     - t: Iteration number.
     """
     if config is None: config = {}
-    config.setdefault('learning_rate', 1e-3)
-    config.setdefault('beta1', 0.9)
-    config.setdefault('beta2', 0.999)
-    config.setdefault('epsilon', 1e-8)
-    config.setdefault('m', np.zeros_like(x))
-    config.setdefault('v', np.zeros_like(x))
-    config.setdefault('t', 1)
+    l_r = config.get('learning_rate', 1e-3)
+    beta1 = config.get('beta1', 0.9)
+    beta2 = config.get('beta2', 0.999)
+    eps = config.get('epsilon', 1e-8)
+    m = config.get('m', np.zeros_like(x))
+    v = config.get('v', np.zeros_like(x))
+    t = config.get('t', 1)
 
-    next_x = None
-    ###########################################################################
-    # TODO: Implement the Adam update formula, storing the next value of x in #
-    # the next_x variable. Don't forget to update the m, v, and t variables   #
-    # stored in config.                                                       #
-    ###########################################################################
-    pass
-    ###########################################################################
-    #                             END OF YOUR CODE                            #
-    ###########################################################################
+    m = beta1 * m + (1 - beta1) * dx
+    mt = m / (1 - beta1 ** (t+1))
+    v = beta2 * v + (1 - beta2) * (dx ** 2)
+    vt = v / (1 - beta2 ** (t+1))
+    next_x = x - l_r * mt / (np.sqrt(vt) + eps)
+
+    config['m'] = m
+    config['v'] = v
 
     return next_x, config

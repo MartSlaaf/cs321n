@@ -141,9 +141,14 @@ class TwoLayerNet(object):
         train_acc_history = []
         val_acc_history = []
 
-        beta = 0.9
+        # beta = 0.9
 
-        previous_pass = {x: 0 for x in self.params.keys()}
+        # previous_pass = {x: 0 for x in self.params.keys()}
+        velocity = {x: 0 for x in self.params.keys()}
+        sq_grad = {x: 0 for x in self.params.keys()}
+
+        v_betta = 0.9
+        s_betta = 0.999
 
 
         for it in xrange(num_iters):
@@ -158,10 +163,23 @@ class TwoLayerNet(object):
             loss, grads = self.loss(X_batch, y=y_batch, reg=reg)
             loss_history.append(loss)
 
+            # for param_name in grads:
+            #     step = grads[param_name] * learning_rate * (1-beta) + previous_pass[param_name] * beta
+            #     self.params[param_name] -= step
+            #     previous_pass[param_name] = step
+            #
+            # Adam:
             for param_name in grads:
-                step = grads[param_name] * learning_rate * (1-beta) + previous_pass[param_name] * beta
-                self.params[param_name] -= step
-                previous_pass[param_name] = step
+                # update velocity
+                velocity[param_name] = v_betta * velocity[param_name] + (1 - v_betta) * grads[param_name]
+                # update gradient_squares
+                sq_grad[param_name] = s_betta * sq_grad[param_name] + (1 - s_betta) * grads[param_name] * grads[param_name]
+                # unbiasing
+                # velocity[param_name] /= (1 - v_betta ** (it+1))
+                # sq_grad[param_name] /= (1 - s_betta ** (it+1))
+                # make step
+                self.params[param_name] -= learning_rate * velocity[param_name] / (np.sqrt(sq_grad[param_name]) + 1e-8)
+                self.params[param_name] *= (1 - s_betta ** (it+1)) / (1 - v_betta ** (it+1))
 
             if verbose and it % 100 == 0:
                 print('iteration %d / %d: loss %f' % (it, num_iters, loss))

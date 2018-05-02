@@ -2,8 +2,8 @@ from builtins import range
 from builtins import object
 import numpy as np
 
-from cs231n.layers import *
-from cs231n.layer_utils import *
+from ..layers import *
+from ..layer_utils import *
 
 
 class TwoLayerNet(object):
@@ -38,19 +38,10 @@ class TwoLayerNet(object):
         """
         self.params = {}
         self.reg = reg
-
-        ############################################################################
-        # TODO: Initialize the weights and biases of the two-layer net. Weights    #
-        # should be initialized from a Gaussian with standard deviation equal to   #
-        # weight_scale, and biases should be initialized to zero. All weights and  #
-        # biases should be stored in the dictionary self.params, with first layer  #
-        # weights and biases using the keys 'W1' and 'b1' and second layer weights #
-        # and biases using the keys 'W2' and 'b2'.                                 #
-        ############################################################################
-        pass
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
+        self.params['W1'] = np.random.normal(0, weight_scale, (input_dim, hidden_dim))
+        self.params['b1'] = np.zeros((hidden_dim, ))
+        self.params['W2'] = np.random.normal(0, weight_scale, (hidden_dim, num_classes))
+        self.params['b2'] = np.zeros((num_classes, ))
 
 
     def loss(self, X, y=None):
@@ -73,34 +64,28 @@ class TwoLayerNet(object):
           names to gradients of the loss with respect to those parameters.
         """
         scores = None
-        ############################################################################
-        # TODO: Implement the forward pass for the two-layer net, computing the    #
-        # class scores for X and storing them in the scores variable.              #
-        ############################################################################
-        pass
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
+
+        scores, cache_1a = affine_forward(X, self.params['W1'], self.params['b1'])
+        scores, cache_1r = relu_forward(scores)
+        scores, cache_2a = affine_forward(scores, self.params['W2'], self.params['b2'])
 
         # If y is None then we are in test mode so just return scores
         if y is None:
             return scores
 
         loss, grads = 0, {}
-        ############################################################################
-        # TODO: Implement the backward pass for the two-layer net. Store the loss  #
-        # in the loss variable and gradients in the grads dictionary. Compute data #
-        # loss using softmax, and make sure that grads[k] holds the gradients for  #
-        # self.params[k]. Don't forget to add L2 regularization!                   #
-        #                                                                          #
-        # NOTE: To ensure that your implementation matches ours and you pass the   #
-        # automated tests, make sure that your L2 regularization includes a factor #
-        # of 0.5 to simplify the expression for the gradient.                      #
-        ############################################################################
-        pass
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
+
+        loss, dx = softmax_loss(scores, y)
+
+        loss += 0.5 * self.reg * np.sum(self.params['W1'] ** 2)
+        loss += 0.5 * self.reg * np.sum(self.params['W2'] ** 2)
+
+        dx, grads['W2'], grads['b2'] = affine_backward(dx, cache_2a)
+        dx = relu_backward(dx, cache_1r)
+        dx, grads['W1'], grads['b1'] = affine_backward(dx, cache_1a)
+
+        grads['W2'] += self.reg * self.params['W2']
+        grads['W1'] += self.reg * self.params['W1']
 
         return loss, grads
 
@@ -151,6 +136,17 @@ class FullyConnectedNet(object):
         self.dtype = dtype
         self.params = {}
 
+        previous_dim = input_dim
+        for i, layer_dim in enumerate(hidden_dims):
+            self.params['W'+str(i + 1)] = np.random.normal(0, weight_scale, (previous_dim, layer_dim))
+            self.params['b'+str(i + 1)] = np.zeros((layer_dim, ))
+            previous_dim = layer_dim
+
+        self.params['W'+str(self.num_layers)] = np.random.normal(0, weight_scale, (previous_dim, num_classes))
+        self.params['b' + str(self.num_layers)] = np.zeros((num_classes,))
+
+
+
         ############################################################################
         # TODO: Initialize the parameters of the network, storing all values in    #
         # the self.params dictionary. Store weights and biases for the first layer #
@@ -199,6 +195,7 @@ class FullyConnectedNet(object):
         """
         X = X.astype(self.dtype)
         mode = 'test' if y is None else 'train'
+        N = X.shape[0]
 
         # Set train/test mode for batchnorm params and dropout param since they
         # behave differently during training and testing.
@@ -208,7 +205,19 @@ class FullyConnectedNet(object):
             for bn_param in self.bn_params:
                 bn_param['mode'] = mode
 
-        scores = None
+        scores = X.reshape((X.shape[0], -1))
+        caches = []
+
+        for one_layer in range(self.num_layers):
+            current_layer = one_layer + 1
+
+
+            scores, cache = affine_forward(scores,
+                                           self.params['W'+str(current_layer)],
+                                           self.params['b'+str(current_layer)])
+            caches.append(cache)
+
+
         ############################################################################
         # TODO: Implement the forward pass for the fully-connected net, computing  #
         # the class scores for X and storing them in the scores variable.          #
@@ -231,6 +240,25 @@ class FullyConnectedNet(object):
             return scores
 
         loss, grads = 0.0, {}
+        loss, dq = softmax_loss(scores, y)
+
+        # exp_sc = np.exp(scores)
+        # scpum = exp_sc.sum(1)
+        #
+        # dq = np.ones_like(scores) * scores / scpum[:, None]
+        # dq[np.arange(N), y] -= 1
+
+        reverse = dq
+
+        for one_layer in reversed(range(self.num_layers)):
+            current_layer = one_layer + 1
+
+            (reverse,
+             grads['W'+str(current_layer)],
+             grads['b'+str(current_layer)]) = affine_backward(reverse, caches[one_layer])
+
+
+
         ############################################################################
         # TODO: Implement the backward pass for the fully-connected net. Store the #
         # loss in the loss variable and gradients in the grads dictionary. Compute #
@@ -248,5 +276,4 @@ class FullyConnectedNet(object):
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
-
         return loss, grads

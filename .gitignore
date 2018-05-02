@@ -104,6 +104,9 @@ ENV/
 */datasets/*
 !*/datasets/*.sh
 
+.DS_Store
+**/.DS_Store?
+
 # pycharm
 
 */.idea/
