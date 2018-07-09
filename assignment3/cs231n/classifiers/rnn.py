@@ -2,8 +2,8 @@ from builtins import range
 from builtins import object
 import numpy as np
 
-from cs231n.layers import *
-from cs231n.rnn_layers import *
+from ..layers import *
+from ..rnn_layers import *
 
 
 class CaptioningRNN(object):
@@ -106,6 +106,7 @@ class CaptioningRNN(object):
         # hidden state
         W_proj, b_proj = self.params['W_proj'], self.params['b_proj']
 
+
         # Word embedding matrix
         W_embed = self.params['W_embed']
 
@@ -121,26 +122,39 @@ class CaptioningRNN(object):
         # In the forward pass you will need to do the following:                   #
         # (1) Use an affine transformation to compute the initial hidden state     #
         #     from the image features. This should produce an array of shape (N, H)#
+        h0, affine_cache = affine_forward(features, W_proj, b_proj)
         # (2) Use a word embedding layer to transform the words in captions_in     #
         #     from indices to vectors, giving an array of shape (N, T, W).         #
+        captions_in_vectors, embedding_cache = word_embedding_forward(captions_in, W_embed)
         # (3) Use either a vanilla RNN or LSTM (depending on self.cell_type) to    #
         #     process the sequence of input word vectors and produce hidden state  #
         #     vectors for all timesteps, producing an array of shape (N, T, H).    #
+        if self.cell_type == 'rnn':
+            h_collection, rnn_cache = rnn_forward(captions_in_vectors, h0, Wx, Wh, b)
+        else:
+            raise NotImplementedError('No LSTM')
         # (4) Use a (temporal) affine transformation to compute scores over the    #
         #     vocabulary at every timestep using the hidden states, giving an      #
         #     array of shape (N, T, V).                                            #
+        vocab_scores, vocab_cache = temporal_affine_forward(h_collection, W_vocab, b_vocab)
         # (5) Use (temporal) softmax to compute loss using captions_out, ignoring  #
         #     the points where the output word is <NULL> using the mask above.     #
+        loss, grad = temporal_softmax_loss(vocab_scores, captions_out, mask)
         #                                                                          #
         # In the backward pass you will need to compute the gradient of the loss   #
         # with respect to all model parameters. Use the loss and grads variables   #
         # defined above to store loss and gradients; grads[k] should give the      #
         # gradients for self.params[k].                                            #
         ############################################################################
-        pass
-        ############################################################################
-        #                             END OF YOUR CODE                             #
-        ############################################################################
+        grad, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(grad, vocab_cache)
+        if self.cell_type == 'rnn':
+            grad_x, grad_h0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(grad, rnn_cache)
+        else:
+            raise NotImplementedError('No LSTM')
+        grads['W_embed'] = word_embedding_backward(grad_x, embedding_cache)
+        _, grads['W_proj'], grads['b_proj'] = affine_backward(grad_h0, affine_cache)
+
+
 
         return loss, grads
 
